@@ -139,6 +139,9 @@
       $is_slti ? ( $src1_value[31] == $src2_value[31] ? $sltiu_rslt : {31'b0, $src1_value[31]} ) :
       $is_sra  ? $sra_rslt[31:0] :
       $is_srai ? $srai_rslt[31:0] :
+      // groups of data memory instructions
+      $is_load ? $src1_value + $imm :
+      $is_s_instr ? $src1_value + $imm :
       32'b0;
    
    $taken_br =
@@ -155,7 +158,7 @@
    // Register File Write
    $wr_en = $rd == 0 ? 0 : $rd_valid; // prevent writing to x0 register
    $wr_index[4:0] = $rd;
-   $wr_data[31:0] = $result;
+   $wr_data[31:0] = $is_load ? $ld_data : $result;
    
    
    // Assert these to end simulation (before Makerchip cycle limit).
@@ -163,7 +166,7 @@
    *failed = *cyc_cnt > M4_MAX_CYC;
    
    m4+rf(32, 32, $reset, $wr_en, $wr_index[4:0], $wr_data[31:0], $rd1_en, $rd1_index[4:0], $rd1_data, $rd2_en, $rd2_index[4:0], $rd2_data)
-   //m4+dmem(32, 32, $reset, $addr[4:0], $wr_en, $wr_data[31:0], $rd_en, $rd_data)
+   m4+dmem(32, 32, $reset, $result[4:0], $is_s_instr, $src2_value, $is_load, $ld_data[31:0])
    m4+cpu_viz()
 \SV
    endmodule
