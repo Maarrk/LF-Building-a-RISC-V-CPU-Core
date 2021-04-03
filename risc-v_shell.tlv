@@ -27,9 +27,11 @@
    m4_asm(ADD, x14, x13, x14)           // Incremental summation
    m4_asm(ADDI, x13, x13, 1)            // Increment loop count by 1
    m4_asm(BLT, x13, x12, 1111111111000) // If a3 is less than a2, branch to label named <loop>
-   // Test result value in x14, and set x31 to reflect pass/fail.
+   // Test result value in x14, and set x31 to reflect pass/fail.                   
    m4_asm(ADDI, x30, x14, 111111010100) // Subtract expected value of 44 to set x30 to 1 if and only iff the result is 45 (1 + 2 + ... + 9).
    m4_asm(BGE, x0, x0, 0) // Done. Jump to itself (infinite loop). (Up to 20-bit signed immediate plus implicit 0 bit (unlike JALR) provides byte address; last immediate bit should also be 0)
+                   
+   m4_asm(ADDI, x0, x0, 101) // Test writing to zero register
    m4_asm_end()
    m4_define(['M4_MAX_CYC'], 50)
    //---------------------------------------------------------------------------------
@@ -92,12 +94,31 @@
    $is_add  = $dec_bits ==? 11'b0_000_0110011;
    `BOGUS_USE($is_beq $is_bne $is_blt $is_bge $is_bltu $is_bgeu $is_addi $is_add)
    
+   // Register File Read
+   $rd1_en = $rs1_valid;
+   $rd2_en = $rs2_valid;
+   $rd1_index[4:0] = $rs1;
+   $rd2_index[4:0] = $rs2;
+   $src1_value[31:0] = $rd1_data;
+   $src2_value[31:0] = $rd2_data;
+   
+   // ALU (arithmetic logic unit)
+   $result[31:0] =
+      $is_addi ? $src1_value + $imm :
+      $is_add  ? $src1_value + $src2_value :
+      32'b0;
+   
+   // Register File Write
+   $wr_en = $rd == 0 ? 0 : $rd_valid; // prevent writing to x0 register
+   $wr_index[4:0] = $rd;
+   $wr_data[31:0] = $result;
+   
    
    // Assert these to end simulation (before Makerchip cycle limit).
    *passed = 1'b0;
    *failed = *cyc_cnt > M4_MAX_CYC;
    
-   //m4+rf(32, 32, $reset, $wr_en, $wr_index[4:0], $wr_data[31:0], $rd1_en, $rd1_index[4:0], $rd1_data, $rd2_en, $rd2_index[4:0], $rd2_data)
+   m4+rf(32, 32, $reset, $wr_en, $wr_index[4:0], $wr_data[31:0], $rd1_en, $rd1_index[4:0], $rd1_data, $rd2_en, $rd2_index[4:0], $rd2_data)
    //m4+dmem(32, 32, $reset, $addr[4:0], $wr_en, $wr_data[31:0], $rd_en, $rd_data)
    m4+cpu_viz()
 \SV
