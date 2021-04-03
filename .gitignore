@@ -1,0 +1,5 @@
+# Python virtual environment
+venv/
+
+# Temporary Makerchip files
+*.bak
