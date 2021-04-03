@@ -21,8 +21,10 @@
    
    // PC Logic
    $next_pc[31:0] =
-       $reset == 1 ? 0 :
+       $reset    ? 0 :
        $taken_br ? $br_tgt_pc :
+       $is_jal   ? $br_tgt_pc :
+       $is_jalr  ? $jalr_tgt_pc :
        >>1$next_pc + 4;
    $pc[31:0] = >>1$next_pc;
    
@@ -148,6 +150,7 @@
       $is_bgeu ? $src1_value >= $src2_value :
       0;
    $br_tgt_pc[31:0] = $pc + $imm;
+   $jalr_tgt_pc[31:0] = $src1_value + $imm;
    
    // Register File Write
    $wr_en = $rd == 0 ? 0 : $rd_valid; // prevent writing to x0 register
